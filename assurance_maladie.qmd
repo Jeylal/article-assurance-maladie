@@ -1,0 +1,604 @@
+---
+title: "L'assurance-maladie obligatoire suisse dans l'impasse. Une analyse du compromis socio-politique derrière la Loi fédérale sur l’assurance maladie (LAMal)"
+subtitle: "Annexe"
+author: 
+  - "Celâl Güney"
+  - "Gaia Valenti"
+format: 
+  html: 
+    toc: true
+  pdf: default
+  docx: default
+editor: visual
+execute: 
+  eval: true
+  warning: false
+  message: false
+  echo: false 
+draft: false
+---
+
+```{r set up}
+#| echo: false
+#| message: false
+#| warning: false
+rm(list = ls())
+
+options(scipen = 100, digits = 4)
+library(tidyverse)
+library(readr)
+library(quarto)
+votation_allegement_prime <- read_delim("data/votation_allegement_prime.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+## Swissvotes
+
+```{r tableau votation}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(readr)
+swissvotes <- read_delim("data/swissvotes.csv", 
+    delim = ";", escape_double = FALSE, col_types = cols(d1e3 = col_double()), 
+    trim_ws = TRUE)
+
+
+swissvotes %>% 
+  count(d1e3)
+swissvotes2 <- 
+swissvotes %>% 
+  filter(d1e3 == "10.24") %>% 
+  select(datum, titel_kurz_f, annahme, `volkja-proz`)
+
+swissvotes3 = swissvotes %>% filter(anr == 676.0)
+
+swissvotes4 <- 
+swissvotes %>% 
+  filter(d1e3 %in% c("10.24", "10.11")) %>% 
+  select(datum, titel_kurz_f, annahme, `volkja-proz`) %>% 
+  rename(
+    Date = "datum",
+    Votation = "titel_kurz_f",
+    `Résultat` = "annahme",
+    `% Oui` = "volkja-proz"
+  )
+
+library(gt)
+
+swissvotes_table <- 
+swissvotes4 %>% 
+  gt()
+
+
+#gtsave(swissvotes_table, "table_votations.png", expand = 15)
+
+```
+
+## Faits stylisés
+
+```{r set up faits stylises}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(readxl)
+library(tidyverse)
+
+data_final_am <- read_excel("data_final_am.xlsx", 
+    sheet = "graphique 1") %>% 
+  pivot_longer(
+    cols = 2:15,
+    names_to = "variable",
+    values_to = "value"
+  )
+
+
+
+
+
+```
+
+```{r graphique 1 faits stylises}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+
+plot1 <- 
+data_final_am %>% 
+  filter(variable %in% c("indice_cout_sante_hab100", "salaire_reel100", "salaire_nominal100", "pib_reel_100", "ipam_total")) %>% 
+  ggplot(aes(x = Year, y = value, color = variable, linetype = variable))+
+  geom_line(size = 1)+
+  labs(y = "1999 = 100",
+       x = "",
+       title = "Évolution de l'indice des primes d'assurance-maladie")+
+  theme_minimal()+
+  scale_color_discrete(labels = c("Coûts de la santé par habitants",
+                                  "Indice des primes d'assurance-maladie",
+                                  "PIB réel",
+                                  "Indice des salaires nominaux",
+                                  "Indice des salaires réels"))+
+  scale_linetype_discrete(labels = c("Coûts de la santé par habitants",
+                                    "Indice des primes d'assurance-maladie",
+                                     "PIB réel",
+                                     "Indice des salaires nominaux",
+                                     "Indice des salaires réels"))+
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        text = element_text(size = 11.6))+
+  guides(color = guide_legend(nrow = 2)) 
+
+plot1
+
+#ggsave("plot_ipam.jpg", plot1)
+
+```
+
+```{r graph faits stylises 2}
+
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(viridis)
+library(paletteer)
+
+dep_quantiles <- data_final_am <- read_excel("data_final_am.xlsx", 
+    sheet = "graphique2", skip = 3) %>% 
+  pivot_longer(cols = -1)
+
+plot2 <- 
+dep_quantiles %>% 
+  ggplot(aes(x = annee, y = value, fill = name))+
+  geom_col(position = "dodge", color = "white")+
+  theme_minimal()+
+  labs(x = "",
+       y = "Pourcentage du revenu disponible brut",
+       subtitle = "Dépense des ménages suisses pour les primes de l'assurance-maladie de base")+
+  scale_fill_paletteer_d("nationalparkcolors::Acadia",
+                         name = "Quintile")
+
+#ggsave("graph_budget_menages.png", plot2)
+```
+
+```{r graph 3 financement sante}
+
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(readr)
+library(ggtext)
+library(ggrepel)
+financement_sante <- read_csv("data/financement_sante.csv")
+
+
+financement_sante2 = financement_sante %>% 
+  pivot_longer(cols = -1) %>% 
+  rename(annee = "Label_FR") %>% 
+  group_by(annee) %>% 
+  mutate(
+    total = sum(value),
+  ) %>% 
+  group_by(annee, name) %>% 
+  mutate(
+    part = value/total
+  )
+
+
+graph_financement <- 
+financement_sante2 %>% 
+  ggplot()+
+  aes(x = annee, y = part, color = name)+
+  geom_line(size = 1.2)+
+  scale_y_continuous(labels = scales::percent)+
+  scale_color_paletteer_d("ggthemes::Classic_10")+
+  theme_minimal()+
+  geom_label_repel(
+    data = financement_sante2 %>% filter(annee == 2023),
+    aes(label = name, x = annee, y = part),
+    direction = "y",
+    nudge_y = 0.001,
+    nudge_x = 10,
+    size = 2.8
+  )+
+  theme(legend.position = "none")+
+  labs(x = "", y = "",
+       subtitle = "Financement du système de santé selon la source")
+
+graph_financement
+#ggsave("graph_financement.png", graph_financement)  
+  
+```
+
+## Votation
+
+```{r votation merging}
+
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(tidyverse)
+library(readr)
+
+votations2024 <- read_excel("data/votations2024.xlsx", 
+    col_types = c("numeric", "text", "numeric", 
+        "numeric"))
+
+afc_chiffrescles_2022 <- read_excel("data/afc_chiffrescles_2022.xlsx", 
+    sheet = "Gemeinden - Communes")
+
+
+data = votations2024 %>% 
+  left_join(afc_chiffrescles_2022, by = c("Gemeindenummer" = "Gemeindenummer\r\nCode commune"))
+
+
+data = data %>% 
+  mutate(
+    decile_mean_reinka = ntile(mean_reinka, 10),
+    perc_mean_reinka = ntile(mean_reinka, 100)
+  )
+
+data %>% 
+  ggplot()+
+  aes(x = decile_mean_reinka, y = freincouts_oui, group = decile_mean_reinka) %>% 
+  geom_boxplot()
+
+data %>% 
+  ggplot(aes(x = perc_mean_reinka, y = freincouts_oui)) +
+  geom_point()
+
+data %>% 
+  ggplot(aes(x = gini_reinka, y = freincouts_oui, group = `Kanton\r\nCanton`)) +
+  geom_point()+
+  facet_wrap(~`Kanton\r\nCanton`)
+
+
+```
+
+```{r maps}
+
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(BFS)
+library(ggplot2)
+library(sf)
+library(mapview)
+
+communes_sf <- bfs_get_base_maps(geom = "polg", date = "20240101")
+communes_sf$id = as.numeric(communes_sf$id)
+datamap = data %>% 
+  left_join(communes_sf, by = c("Gemeindenummer" = "id"))
+
+efas_votation_commune <- read_excel("data/efas_votation_commune.xlsx", 
+    skip = 4)
+
+datamap2 = efas_votation_commune[, c(1, 3, 4, 13)] %>% 
+  left_join(datamap, by = c("No commune" = "Gemeindenummer")) %>% 
+  rename("efas_oui" = `Oui en %`)
+
+datamap %>% 
+  ggplot()+ 
+  geom_sf(aes(geometry = geometry, fill = allegement_primes_oui))+
+  theme_void()+
+  scale_fill_viridis_b()+
+  theme(legend.position = "bottom") 
+
+datamap2 %>% 
+  ggplot()+ 
+  geom_sf(aes(geometry = geometry, fill = efas_oui))+
+  theme_void()+
+  scale_fill_viridis_c(option = "turbo", direction = -1)+
+  theme(legend.position = "bottom") 
+
+
+library(biscale)
+
+biclass = bi_class(datamap2, x = median_reinka, y = efas_oui, style = "quantile", dim = 3, na_rm = TRUE)
+
+bimap = 
+ggplot() +
+  geom_sf(data = biclass, mapping = aes(geometry = geometry, fill = bi_class), color = "white", size = 0.1, show.legend = F) +
+  bi_scale_fill(pal = "GrPink", dim = 3) +
+  bi_theme(base_size = 10)+
+  labs(
+    title = "Votation sur le financement uniforme des prestations de santé",
+    caption = " Pour chaque commune, le pourcentage de oui à la votation de novembre 2024 
+    sur l'uniformation du financement des prestations de santé.
+    Le revenu médian correspond à la médiane du revenu équivalent net en 2022 (en franc). Source: OFS"
+  )
+
+legend <- bi_legend(pal = "GrPink",
+                    dim = 3,
+                    xlab = "Revenu médian",
+                    ylab = "Oui en %",
+                    size = 8)
+library(cowplot)
+
+ggdraw() +
+  draw_plot(bimap, 0, 0, 1, 1) +
+  draw_plot(legend, 0.05, .65, 0.2, 0.2)
+
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+votation_allegement_prime = votation_allegement_prime %>% 
+  mutate(
+    freincouts_oui = if_else(VOTE1 == 1, 1,
+                             if_else(VOTE1 %in% c(2, 3), 0,
+                                     if_else(VOTE1 == 8, NA, 0))),
+    income = case_when(
+      INCOME == 98 ~ NA,
+      INCOME != 98 ~ INCOME
+    ),
+    
+    gender = case_when(
+      S11 == 1 ~ "Man",
+      S11 == 2 ~ "Woman",
+      S11 == 8 | 3 ~ NA
+    ),
+    
+    isced6 = case_when(
+    EDUC %in% c(10, 21) ~ 1,            # Primaire
+    EDUC %in% c(22, 31) ~ 2,            # Secondaire I
+    EDUC %in% c(32, 33) ~ 3,            # Secondaire II
+    EDUC == 40 ~ 4,                     # Post-secondaire non tertiaire
+    EDUC %in% c(51, 52) ~ 5,            # Tertiaire (sans doctorat)
+    EDUC == 60 ~ 6,                     # Doctorat
+    EDUC %in% c(97, 98) ~ NA
+  ),
+  
+  lr = if_else(LRSP == 98, NA, LRSP)
+  
+  )
+
+
+
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+model1 = glm(data = votation_allegement_prime,
+             freincouts_oui ~ income + isced6 + lr,
+             family = binomial(link = "logit"))
+
+library(marginaleffects)
+model1 %>% 
+  plot_predictions(by = c("income"))
+  
+   model1 %>% 
+    plot_slopes(variables = "income", condition = "lr")
+```
+
+## Selects panel 2023
+
+```{r setup selects2023 panel}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+rm(list=ls())
+library(haven)
+library(tidyverse)
+library(marginaleffects)
+library(sjlabelled)
+library(DIGCLASS)
+
+selects2023panel <- haven::read_sav("data/selects2023panel/selects2023panel.sav") #linux
+
+selects2023panel$isco08 = selects2023panel$W1_ISCO08prof_2dig*100
+
+selects2023panel2 = selects2023panel %>% 
+  rename(
+    "assurance_maladie_franchise_pour" = W1_f15340f,
+    "op_limit_immigration" = W1_f15340b,
+    "op_funding_childcare" = W1_f15340c,
+    "op_protec_env" = W1_f15340d,
+    'op_state_interv' = W1_f15435,
+    'op_social_expenses' = W1_f15420,
+    'op_eu_integration' = W1_f15425,
+    'op_chances_foreigners' = W1_f15440,
+    'op_gender_equality' = W1_f15475,
+    'op_taxes_high_income' = W1_f15480,
+    'op_traditions' = W1_f15485,
+    'op_min_wage' = W1_f15815,
+    'op_incr_retirementAge' = W1_f15811,
+    'probs_vote_plr' = W1_f14400a,
+    'probs_vote_centre' = W1_f14400j,
+    'probs_vote_ps' = W1_f14400c,
+    'probs_vote_udc' = W1_f14400d,
+    'probs_vote_verts' = W1_f14400e,
+    'probs_vote_vertsliberaux' = W1_f14400f,
+
+  ) %>% 
+  mutate(
+    income = case_when(
+  W1_f28910 == 1  ~ (0+2000)/2,
+  W1_f28910 == 2  ~ (2001+3000)/2,
+  W1_f28910 == 3  ~ (3001+4000)/2,
+  W1_f28910 == 4  ~ (4001+5000)/2,
+  W1_f28910 == 5  ~ (5001+6000)/2,
+  W1_f28910 == 6  ~ (6001+7000)/2,
+  W1_f28910 == 7  ~ (7001+8000)/2,
+  W1_f28910 == 8  ~ (8001+9000)/2,
+  W1_f28910 == 9  ~ (9001+10000)/2,
+  W1_f28910 == 10 ~ (10001+11000)/2,
+  W1_f28910 == 11 ~ (11001+12000)/2,
+  W1_f28910 == 12 ~ (12001+13000)/2,
+  W1_f28910 == 13 ~ (13001+14000)/2,
+  W1_f28910 == 14 ~ (14001+15000)/2,
+  W1_f28910 == 15 ~ (15001+16000)/2,
+  W1_f28910 == 16 ~ (16001+17000)/2,
+  W1_f28910 == 17 ~ (17001+18000)/2,
+  W1_f28910 == 18 ~ (18001+19000)/2,
+  W1_f28910 == 19 ~ (19001+20000)/2,
+  W1_f28910 == 20 ~ 20001         
+),
+income_decile = ntile(income, n = 10),
+income_adjusted = income/sqrt(W1_hhsize_sample),
+income_adj_decile = ntile(income_adjusted, n = 10),
+
+lr = if_else(W1_f15200 == 98 | is.na(W1_f15200), NA, W1_f15200),
+
+education_ISCED = case_when(
+  W1_f21310rec %in% c(1, 2) ~ 1,  # No education, Primary = ISCED 1
+  W1_f21310rec == 3        ~ 2,  # Secondary school = ISCED 2
+  W1_f21310rec %in% c(4,5) ~ 3,  # Basic vocational, apprenticeship = ISCED 3
+  W1_f21310rec %in% c(6,7,8) ~ 4, # Upper secondary specialized, trade, vocational = ISCED 4 
+  W1_f21310rec == 9 ~ 5,  # Matu = ISCED 5
+  W1_f21310rec == 10 ~ 5,  # Higher vocational education with federal diploma = ISCED 5
+  W1_f21310rec == 11 ~ 6,  # College of higher education = ISCED 6
+  W1_f21310rec == 12 ~ 6,  # Uni of applied sciences = ISCED 6 (Bachelor level)
+  W1_f21310rec == 13 ~ 7,  # University / Federal Institute of Technology = ISCED 7 (Master)
+  W1_f21310rec == 14 ~ NA   # other
+),
+
+public_sector = if_else(W1_f21700 == 2, 1, 0),
+canton = as_character(W1_canton_sample),
+langue = relevel(factor(as_character(W1_munilang_sample)), ref = "German"),
+
+#isco08_4d = isco08_swap(W1_ISCO08prof_2dig, from = 2, to = 3),
+
+main_activity = case_when(
+  
+  W1_f21400 %in% c(1, 2, 7) ~ 1, # working
+  W1_f21400 %in% c(3) ~ 2, # in training/education
+  W1_f21400 %in% c(6) ~ 3, # disability
+  W1_f21400 %in% c(4, 8) ~ 4, # no paid work
+  W1_f21400 %in% c(5) ~ 5 # retired
+  
+),
+
+work_status = case_when(
+  W1_f21500 == 4 ~ 1, # self-employed
+  W1_f21500 %in% c(1, 2, 3) ~ 0, # employee
+  is.na(W1_f21500) ~ 2 # not employed
+),
+
+eseg = isco08_to_eseg(isco08, work_status = work_status, main_activity = main_activity, age = W1_age, to_factor = FALSE, type = "two-digit", label = FALSE)
+
+)
+
+selects2023panel2$assurance_maladie_franchise_pour = selects2023panel2$assurance_maladie_franchise_pour %>% 
+  as.ordered()
+
+
+selects2023panel2 = selects2023panel2 %>% 
+  mutate(
+     eseg9 = case_when(
+       eseg %in% c(1.1, 1.2, 1.3, 1.4) ~ "Managers",
+       eseg %in% c(2.1, 2.2, 2.3, 2.4, 2.5) ~ "Professionals",
+       eseg %in% c(3.1, 3.2, 3.3, 3.4, 3.5) ~ "Technicians and associated professionals employees",
+       eseg %in% c(4.1, 4.2, 4.3) ~ "small entrepreneurs",
+       eseg %in% c(5.1, 5.2, 5.3, 5.4) ~ "Clerks and skilled service employees",
+       eseg %in% c(6.1, 6.2, 6.3, 6.4, 6.5) ~ "Skilled industrial employees",
+       eseg %in% c(7.1, 7.2, 7.3, 7.4) ~ "Lower status employees",
+       eseg %in% c(8.8) ~ "Retired",
+       eseg %in% c(9.1) ~ "Student",
+       eseg %in% c(9.2, 9.3) ~ "Unemployed or disabled"
+     ),
+     
+     eseg10 = case_when(
+       eseg %in% c(1.1, 1.2, 1.3, 1.4) ~ "Managers",
+       eseg %in% c(2.1, 2.2, 2.4, 2.5) ~ "Professionals",
+       eseg == 2.3 ~ "Business and administration professionals",
+       eseg %in% c(3.1, 3.2, 3.3, 3.4, 3.5) ~ "Technicians and associated professionals employees",
+       eseg %in% c(4.1, 4.2, 4.3) ~ "small entrepreneurs",
+       eseg %in% c(5.1, 5.2, 5.3, 5.4) ~ "Clerks and skilled service employees",
+       eseg %in% c(6.1, 6.2, 6.3, 6.4, 6.5) ~ "Skilled industrial employees",
+       eseg %in% c(7.1, 7.2, 7.3, 7.4) ~ "Lower status employees",
+       eseg %in% c(8.8) ~ "Retired",
+       eseg %in% c(9.1) ~ "Student",
+       eseg %in% c(9.2, 9.3) ~ "Unemployed or disabled"
+     )
+  )
+
+selects2023panel2 %>% 
+  group_by(eseg10) %>% 
+  count(assurance_maladie_franchise_pour %in% c(1, 2)) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  ungroup() %>% 
+  filter(`assurance_maladie_franchise_pour %in% c(1, 2)` == TRUE) %>% 
+  ggplot(aes(x = prop, y = eseg10))+
+  geom_point()
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(MASS)
+
+selects2023panel2$eseg10 = relevel(factor(selects2023panel2$eseg10), ref = "Business and administration professionals")
+
+summary(model1 <- polr(data = selects2023panel2,
+           assurance_maladie_franchise_pour ~ eseg10 + canton,
+           Hess = TRUE), method = "logit")
+
+
+
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| eval: false
+
+
+p = avg_predictions(model1, by = "eseg10")
+p2 = avg_predictions(model1, by = "lr")
+
+
+p %>% ggplot()+
+  aes(x = estimate, y = eseg10, color = group)+
+  geom_point()+
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high))+
+  facet_wrap(~group)
+
+p2 %>% 
+  ggplot(aes(x = lr, y = estimate, color = group))+
+  geom_line()+
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2)
+  
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| eval: false
+
+library(gt)
+library(gtsummary)
+
+
+summary(model3 <- polr(data = selects2023panel2,
+           assurance_maladie_franchise_pour ~ 1 + factor(W1_sex) + income_adj_decile + education_ISCED + lr + probs_vote_udc + probs_vote_plr + probs_vote_ps + probs_vote_centre + op_limit_immigration + op_state_interv + op_social_expenses + op_min_wage + op_incr_retirementAge + op_taxes_high_income + canton,
+           Hess = TRUE), method = "logit")
+
+
+```
