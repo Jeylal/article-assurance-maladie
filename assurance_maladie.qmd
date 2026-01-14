@@ -159,10 +159,10 @@ dep_quantiles %>%
   theme_minimal()+
   labs(x = "",
        y = "Pourcentage du revenu disponible brut",
-       subtitle = "Dépense des ménages suisses pour les primes de l'assurance-maladie de base")+
+       title = "Dépense des ménages suisses pour les primes de l'assurance-maladie de base")+
   scale_fill_paletteer_d("nationalparkcolors::Acadia",
                          name = "Quintile")+
-  theme(text = element_text(size = 9))
+  theme(text = element_text(size = 11))
 
 
 
@@ -235,13 +235,13 @@ subventions <- read_excel("data_final_am.xlsx",
 plot_subvention1 <- 
 subventions %>% 
   filter(
-    name %in% c("Subventions selon la LAMal par ménage et par année en francs", "Taux de bénéficiaires (%)")
+    name %in% c("Subventions par ménage (francs)", "Taux de bénéficiaires (%)")
   ) %>% 
   ggplot(aes(x = annee, y = value))+
   geom_line()+
   theme_minimal()+
   facet_wrap(~name, scales = "free_y")+
-  theme(text = element_text(size = 9))+
+  theme(text = element_text(size = 16))+
   labs(x = "", y = "")
 
 plot_subventions2 <- 
@@ -254,11 +254,23 @@ subventions %>%
         legend.title = element_blank())+
   labs(x = "", y = "1996 = 100",
        subtitle = "Évolution des subventions et des primes")+
-  theme(text = element_text(size = 9))
+  theme(text = element_text(size = 16))
+
+plot2 <- 
+dep_quantiles %>% 
+  ggplot(aes(x = annee, y = value, fill = name))+
+  geom_col(position = "dodge", color = "white")+
+  theme_minimal()+
+  labs(x = "",
+       y = "Pourcentage du revenu disponible brut",
+       title = "Dépense des ménages suisses pour les primes de l'assurance-maladie de base")+
+  scale_fill_paletteer_d("nationalparkcolors::Acadia",
+                         name = "Quintile")+
+  theme(text = element_text(size = 16))
 
 plot_subventions3 <- grid.arrange(arrangeGrob(plot_subvention1, plot_subventions2, ncol = 1), plot2, ncol = 2)
 
-#ggsave("graph_subventions.png", plot_subventions3, width = 35, units = "cm")
+ggsave("graph_subventions.png", plot_subventions3, width = 60, height = 30, units = "cm")
 
 ```
 
