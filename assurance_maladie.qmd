@@ -161,9 +161,18 @@ dep_quantiles %>%
        y = "Pourcentage du revenu disponible brut",
        subtitle = "Dépense des ménages suisses pour les primes de l'assurance-maladie de base")+
   scale_fill_paletteer_d("nationalparkcolors::Acadia",
-                         name = "Quintile")
+                         name = "Quintile")+
+  theme(text = element_text(size = 9))
+
+
 
 #ggsave("graph_budget_menages.png", plot2)
+
+library(cowplot)
+library(gridExtra)
+
+#grid.arrange(plot1, plot2, ncol = 2)
+
 ```
 
 ```{r graph 3 financement sante}
@@ -216,6 +225,44 @@ graph_financement
 #ggsave("graph_financement.png", graph_financement)  
   
 ```
+
+```{r graph subventions lamal}
+library(readxl)
+subventions <- read_excel("data_final_am.xlsx", 
+    sheet = "graphique3") %>% 
+  pivot_longer(cols = -1)
+
+plot_subvention1 <- 
+subventions %>% 
+  filter(
+    name %in% c("Subventions selon la LAMal par ménage et par année en francs", "Taux de bénéficiaires (%)")
+  ) %>% 
+  ggplot(aes(x = annee, y = value))+
+  geom_line()+
+  theme_minimal()+
+  facet_wrap(~name, scales = "free_y")+
+  theme(text = element_text(size = 9))+
+  labs(x = "", y = "")
+
+plot_subventions2 <- 
+subventions %>% 
+  filter(name %in% c("Subventions selon la LAMal par ménage (en francs)", "Primes moyennes par assuré")) %>% 
+  ggplot(aes(x = annee, y = value, color = name))+
+  geom_line()+
+  theme_minimal()+
+  theme(legend.position = "bottom",
+        legend.title = element_blank())+
+  labs(x = "", y = "1996 = 100",
+       subtitle = "Évolution des subventions et des primes")+
+  theme(text = element_text(size = 9))
+
+plot_subventions3 <- grid.arrange(arrangeGrob(plot_subvention1, plot_subventions2, ncol = 1), plot2, ncol = 2)
+
+#ggsave("graph_subventions.png", plot_subventions3, width = 35, units = "cm")
+
+```
+
+
 
 ## Votation
 
