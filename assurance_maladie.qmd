@@ -274,8 +274,6 @@ ggsave("graph_subventions.png", plot_subventions3, width = 60, height = 30, unit
 
 ```
 
-
-
 ## Votation
 
 ```{r votation merging}
@@ -435,6 +433,7 @@ votation_allegement_prime = votation_allegement_prime %>%
 #| echo: false
 #| message: false
 #| warning: false
+#| eval: false
 
 
 model1 = glm(data = votation_allegement_prime,
@@ -455,6 +454,7 @@ model1 %>%
 #| echo: false
 #| message: false
 #| warning: false
+#| eval: false
 
 
 rm(list=ls())
@@ -607,6 +607,7 @@ selects2023panel2 %>%
 #| echo: false
 #| message: false
 #| warning: false
+#| eval: false
 
 
 library(MASS)
