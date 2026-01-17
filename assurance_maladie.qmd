@@ -6,8 +6,12 @@ author:
   - "Gaia Valenti"
 format: 
   html: 
+    theme:
+      light: flatly
+      dark: darkly
     toc: true
-  pdf: default
+  pdf:
+    pdf-engine: lualatex
   docx: default
 editor: visual
 execute: 
@@ -16,6 +20,7 @@ execute:
   message: false
   echo: false 
 draft: false
+lang: fr
 ---
 
 ```{r set up}
@@ -38,6 +43,7 @@ votation_allegement_prime <- read_delim("data/votation_allegement_prime.csv",
 #| echo: false
 #| message: false
 #| warning: false
+#| eval: true
 
 library(readr)
 swissvotes <- read_delim("data/swissvotes.csv", 
@@ -45,19 +51,10 @@ swissvotes <- read_delim("data/swissvotes.csv",
     trim_ws = TRUE)
 
 
-swissvotes %>% 
-  count(d1e3)
 swissvotes2 <- 
 swissvotes %>% 
-  filter(d1e3 == "10.24") %>% 
-  select(datum, titel_kurz_f, annahme, `volkja-proz`)
-
-swissvotes3 = swissvotes %>% filter(anr == 676.0)
-
-swissvotes4 <- 
-swissvotes %>% 
   filter(d1e3 %in% c("10.24", "10.11")) %>% 
-  select(datum, titel_kurz_f, annahme, `volkja-proz`) %>% 
+  dplyr::select(datum, titel_kurz_f, annahme, `volkja-proz`) %>% 
   rename(
     Date = "datum",
     Votation = "titel_kurz_f",
@@ -68,11 +65,13 @@ swissvotes %>%
 library(gt)
 
 swissvotes_table <- 
-swissvotes4 %>% 
+swissvotes2 %>% 
   gt()
 
 
 #gtsave(swissvotes_table, "table_votations.png", expand = 15)
+
+swissvotes_table
 
 ```
 
@@ -101,7 +100,7 @@ data_final_am <- read_excel("data_final_am.xlsx",
 
 ```
 
-```{r graphique 1 faits stylises}
+```{r graphique IPAM}
 #| echo: false
 #| message: false
 #| warning: false
@@ -147,6 +146,8 @@ plot1
 
 library(viridis)
 library(paletteer)
+library(cowplot)
+library(gridExtra)
 
 dep_quantiles <- data_final_am <- read_excel("data_final_am.xlsx", 
     sheet = "graphique2", skip = 3) %>% 
@@ -168,8 +169,6 @@ dep_quantiles %>%
 
 #ggsave("graph_budget_menages.png", plot2)
 
-library(cowplot)
-library(gridExtra)
 
 #grid.arrange(plot1, plot2, ncol = 2)
 
@@ -185,6 +184,7 @@ library(gridExtra)
 library(readr)
 library(ggtext)
 library(ggrepel)
+
 financement_sante <- read_csv("data/financement_sante.csv")
 
 
@@ -270,14 +270,15 @@ dep_quantiles %>%
 
 plot_subventions3 <- grid.arrange(arrangeGrob(plot_subvention1, plot_subventions2, ncol = 1), plot2, ncol = 2)
 
-ggsave("graph_subventions.png", plot_subventions3, width = 60, height = 30, units = "cm")
+#ggsave("graph_subventions.png", plot_subventions3, width = 60, height = 30, units = "cm")
+
+plot_subventions3
 
 ```
 
 ## Votation
 
 ```{r votation merging}
-
 #| echo: false
 #| message: false
 #| warning: false
@@ -298,25 +299,7 @@ data = votations2024 %>%
   left_join(afc_chiffrescles_2022, by = c("Gemeindenummer" = "Gemeindenummer\r\nCode commune"))
 
 
-data = data %>% 
-  mutate(
-    decile_mean_reinka = ntile(mean_reinka, 10),
-    perc_mean_reinka = ntile(mean_reinka, 100)
-  )
 
-data %>% 
-  ggplot()+
-  aes(x = decile_mean_reinka, y = freincouts_oui, group = decile_mean_reinka) %>% 
-  geom_boxplot()
-
-data %>% 
-  ggplot(aes(x = perc_mean_reinka, y = freincouts_oui)) +
-  geom_point()
-
-data %>% 
-  ggplot(aes(x = gini_reinka, y = freincouts_oui, group = `Kanton\r\nCanton`)) +
-  geom_point()+
-  facet_wrap(~`Kanton\r\nCanton`)
 
 
 ```
@@ -389,72 +372,14 @@ ggdraw() +
 
 ```
 
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
 
 
-votation_allegement_prime = votation_allegement_prime %>% 
-  mutate(
-    freincouts_oui = if_else(VOTE1 == 1, 1,
-                             if_else(VOTE1 %in% c(2, 3), 0,
-                                     if_else(VOTE1 == 8, NA, 0))),
-    income = case_when(
-      INCOME == 98 ~ NA,
-      INCOME != 98 ~ INCOME
-    ),
-    
-    gender = case_when(
-      S11 == 1 ~ "Man",
-      S11 == 2 ~ "Woman",
-      S11 == 8 | 3 ~ NA
-    ),
-    
-    isced6 = case_when(
-    EDUC %in% c(10, 21) ~ 1,            # Primaire
-    EDUC %in% c(22, 31) ~ 2,            # Secondaire I
-    EDUC %in% c(32, 33) ~ 3,            # Secondaire II
-    EDUC == 40 ~ 4,                     # Post-secondaire non tertiaire
-    EDUC %in% c(51, 52) ~ 5,            # Tertiaire (sans doctorat)
-    EDUC == 60 ~ 6,                     # Doctorat
-    EDUC %in% c(97, 98) ~ NA
-  ),
-  
-  lr = if_else(LRSP == 98, NA, LRSP)
-  
-  )
-
-
-
-```
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-#| eval: false
-
-
-model1 = glm(data = votation_allegement_prime,
-             freincouts_oui ~ income + isced6 + lr,
-             family = binomial(link = "logit"))
-
-library(marginaleffects)
-model1 %>% 
-  plot_predictions(by = c("income"))
-  
-   model1 %>% 
-    plot_slopes(variables = "income", condition = "lr")
-```
-
-## Selects panel 2023
+## Selects panel 2023 Minimum franchise
 
 ```{r setup selects2023 panel}
 #| echo: false
 #| message: false
 #| warning: false
-#| eval: false
 
 
 rm(list=ls())
@@ -533,9 +458,11 @@ education_ISCED = case_when(
   W1_f21310rec == 14 ~ NA   # other
 ),
 
-public_sector = if_else(W1_f21700 == 2, 1, 0),
+public_sector = if_else(W1_f21700 == 2, 1,
+                        if_else(is.na(W1_f21700), 0, 0)),
 canton = as_character(W1_canton_sample),
 langue = relevel(factor(as_character(W1_munilang_sample)), ref = "German"),
+gender = factor(as_label(W1_sex)),
 
 #isco08_4d = isco08_swap(W1_ISCO08prof_2dig, from = 2, to = 3),
 
@@ -590,7 +517,10 @@ selects2023panel2 = selects2023panel2 %>%
        eseg %in% c(8.8) ~ "Retired",
        eseg %in% c(9.1) ~ "Student",
        eseg %in% c(9.2, 9.3) ~ "Unemployed or disabled"
-     )
+     ),
+     
+     contre_augm_franch_min = if_else(assurance_maladie_franchise_pour %in% c(1, 2), 1,
+                                      if_else(is.na(assurance_maladie_franchise_pour), NA, 0))
   )
 
 selects2023panel2 %>% 
@@ -603,62 +533,491 @@ selects2023panel2 %>%
   geom_point()
 ```
 
-```{r}
+```{r model 1 fit}
 #| echo: false
 #| message: false
 #| warning: false
-#| eval: false
-
 
 library(MASS)
-
+library(marginaleffects)
 selects2023panel2$eseg10 = relevel(factor(selects2023panel2$eseg10), ref = "Business and administration professionals")
 
-summary(model1 <- polr(data = selects2023panel2,
-           assurance_maladie_franchise_pour ~ eseg10 + canton,
-           Hess = TRUE), method = "logit")
+
+data_model_fit = selects2023panel2 %>% 
+   dplyr::select(contre_augm_franch_min, eseg10, lr, income_adj_decile, education_ISCED, op_limit_immigration, op_funding_childcare, op_protec_env, op_state_interv, op_social_expenses, op_eu_integration, op_chances_foreigners, op_gender_equality, op_taxes_high_income, op_traditions, op_min_wage, op_incr_retirementAge, probs_vote_plr, probs_vote_centre, probs_vote_ps, probs_vote_udc, probs_vote_verts, probs_vote_vertsliberaux, canton, langue, W1_age, gender) %>% 
+  drop_na()
+
+model1 <- glm(data = data_model_fit,
+           contre_augm_franch_min ~ eseg10 + lr + income_adj_decile + education_ISCED + op_limit_immigration + op_funding_childcare + op_protec_env + op_state_interv + op_social_expenses + op_eu_integration + op_chances_foreigners + op_gender_equality + op_taxes_high_income + op_traditions + op_min_wage + op_incr_retirementAge + probs_vote_plr + probs_vote_centre + probs_vote_ps + probs_vote_udc + probs_vote_verts + probs_vote_vertsliberaux + canton + langue + W1_age + gender, family = binomial(link = "logit"))
+
+#model1_step = stepAIC(model1)
+
+model1_step2 = glm(formula = contre_augm_franch_min ~ income_adj_decile + op_limit_immigration + 
+    op_protec_env + op_social_expenses + op_eu_integration + 
+    op_chances_foreigners + op_gender_equality + op_taxes_high_income + 
+    op_min_wage + op_incr_retirementAge + probs_vote_centre + 
+    probs_vote_ps + probs_vote_verts + probs_vote_vertsliberaux + 
+    langue + W1_age + gender, family = binomial(link = "logit"), 
+    data = data_model_fit)
 
 
+#----------------------------------------------------------------------------------------------------------------------------------------#
 
+
+## model diagnostic
+
+library(performance)
+model1_performance = model_performance(model1_step2) 
 ```
 
-```{r}
+```{r model 1 quantities of interest}
 #| echo: false
 #| message: false
 #| warning: false
-#| eval: false
 
+avg_slopes_tbl_model1 <- 
+model1_step2 %>% 
+  avg_slopes()
 
-p = avg_predictions(model1, by = "eseg10")
-p2 = avg_predictions(model1, by = "lr")
+avg_slopes_tbl_model1 <- 
+  avg_slopes_tbl_model1 %>% 
+  mutate(
+    stars = case_when(
+      p.value <= 0.001 ~ "***",
+      p.value <= 0.01 ~ "**",
+      p.value <= 0.05 ~ "*",
+      p.value <= 0.1 ~ "+",
+      p.value > 0.1 ~ ""
+    )
+  )
 
-
-p %>% ggplot()+
-  aes(x = estimate, y = eseg10, color = group)+
-  geom_point()+
-  geom_errorbar(aes(xmin = conf.low, xmax = conf.high))+
-  facet_wrap(~group)
-
-p2 %>% 
-  ggplot(aes(x = lr, y = estimate, color = group))+
-  geom_line()+
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2)
-  
-```
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-#| eval: false
+cbind(avg_slopes_tbl_model1, model1_performance)
 
 library(gt)
-library(gtsummary)
+tbl_model1 <- 
+avg_slopes_tbl_model1 %>% 
+  gt() %>% 
+  fmt_number(
+    decimals = 4
+  ) %>% 
+  cols_merge(columns = c("estimate", "std.error", "stars"),
+             pattern = "<<{1}{3}<br>({2})>>") %>% 
+  tab_header(
+    title = "Résultats: opinion sur l'augmentation de la franchise minimum",
+    subtitle = "Effets et contrastes marginaux moyens prédits par le modèle"
+  ) %>% 
+  tab_source_note(
+    source_note = md(
+      paste0(
+        "**R² Tjur** = ", round(model1_performance$R2, 3), "<br>",
+        "**RMSE** = ", round(model1_performance$RMSE, 3), "<br>",
+        "**N** = ", nrow(data_model_fit)
+      )
+    )
+  ) %>% 
+  tab_source_note(
+    source_note = "+ p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.01"
+  ) 
+
+#tbl_model1 %>% 
+    #gtsave(filename = "tbl_model1.png")
+
+tbl_model1
+
+```
 
 
-summary(model3 <- polr(data = selects2023panel2,
-           assurance_maladie_franchise_pour ~ 1 + factor(W1_sex) + income_adj_decile + education_ISCED + lr + probs_vote_udc + probs_vote_plr + probs_vote_ps + probs_vote_centre + op_limit_immigration + op_state_interv + op_social_expenses + op_min_wage + op_incr_retirementAge + op_taxes_high_income + canton,
-           Hess = TRUE), method = "logit")
+
+## Selects Panel Wave 4 (Premium relief initiative)
+
+
+```{r selects panel for wave 4 setup}
+library(haven)
+library(tidyverse)
+library(marginaleffects)
+library(sjlabelled)
+library(DIGCLASS)
+
+
+# function to recode party satisfaction variables to put "don't know" as middle value
+
+recode_party_satisfaction = function(var){
+  new_var = case_when(
+    var == 1 ~ 1,
+    var == 2 ~ 2, 
+    var == 8 ~ 3, 
+    var == 3 ~ 4,
+    var == 4 ~ 5
+  )
+}
+
+
+selects2023panelW4 <-  read_sav("data/selects2023panelW4/data/2626_Selects2023_Panel_Data_v2.0.sav")
+
+selects2023panelW4$isco08 = selects2023panelW4$W1_4_f21601_2dig*100
+
+selects2023panelW4_2 = selects2023panelW4  %>% 
+  rename(
+    vote_choice = "W4_f10851main6",
+    feelings_udc = 'W4_f14177a',
+    feelings_ps = 'W4_f14177b',
+    feelings_centre = 'W4_f14177c',
+    feelings_plr = 'W4_f14177d',
+    feelings_verts = 'W4_f14177e',
+    feelings_vertslib = 'W4_f14177f',
+    
+    op_gender_equality = 'W4_f15475',
+    op_state_intervention = 'W4_f15435', # 5 = for more competition
+    op_2many_worries_abt_env_vs_prices = 'W4_f15478',
+    op_min_wage = 'W4_f15815', # 4 = strongly in favor
+    op_incr_retirement_age = 'W4_f15811',
+    op_foreigners_votingrights = 'W4_f15816',
+    op_rights_samesex_couples = 'W4_f15817'
+    
+    
+    
+  ) %>% 
+  mutate(
+    income = case_when(
+  W4_f28910 == 1  ~ (0+2000)/2,
+  W4_f28910 == 2  ~ (2001+3000)/2,
+  W4_f28910 == 3  ~ (3001+4000)/2,
+  W4_f28910 == 4  ~ (4001+5000)/2,
+  W4_f28910 == 5  ~ (5001+6000)/2,
+  W4_f28910 == 6  ~ (6001+7000)/2,
+  W4_f28910 == 7  ~ (7001+8000)/2,
+  W4_f28910 == 8  ~ (8001+9000)/2,
+  W4_f28910 == 9  ~ (9001+10000)/2,
+  W4_f28910 == 10 ~ (10001+11000)/2,
+  W4_f28910 == 11 ~ (11001+12000)/2,
+  W4_f28910 == 12 ~ (12001+13000)/2,
+  W4_f28910 == 13 ~ (13001+14000)/2,
+  W4_f28910 == 14 ~ (14001+15000)/2,
+  W4_f28910 == 15 ~ (15001+16000)/2,
+  W4_f28910 == 16 ~ (16001+17000)/2,
+  W4_f28910 == 17 ~ (17001+18000)/2,
+  W4_f28910 == 18 ~ (18001+19000)/2,
+  W4_f28910 == 19 ~ (19001+20000)/2,
+  W4_f28910 == 20 ~ 20001         
+),
+
+language = factor(as_label(W4_langint)),
+gender = factor(as_label(W4_sex)),
+
+rec_satisf_plr = recode_party_satisfaction(W4_f13743a),
+rec_satisf_centre = recode_party_satisfaction(W4_f13743b),
+rec_satisf_ps = recode_party_satisfaction(W4_f13743c),
+rec_satisf_udc = recode_party_satisfaction(W4_f13743d),
+rec_satisf_verts = recode_party_satisfaction(W4_f13743e),
+
+income_decile = ntile(income, n = 10),
+income_adjusted = income/sqrt(W4_f20500), # W4_f20500 = household size, including R
+income_adj_decile = ntile(income_adjusted, n = 10),
+
+lr = if_else(W4_f15200 == 98 | is.na(W4_f15200), NA, W4_f15200),
+
+education_ISCED = case_when(
+  W4_f21310rec %in% c(1, 2) ~ 1,  # No education, Primary = ISCED 1
+  W4_f21310rec == 3        ~ 2,  # Secondary school = ISCED 2
+  W4_f21310rec %in% c(4,5) ~ 3,  # Basic vocational training, apprenticeship = ISC4D 3
+  W4_f21310rec %in% c(6,7,8) ~ 4, # Upper secondary specialized, tra4e, vocational = ISCED 4 
+  W4_f21310rec == 9 ~ 5,  # Matu = ISCED 5
+  W4_f21310rec == 10 ~ 5,  # Higher vocational education with federal dip4oma = ISCED 5
+  W4_f21310rec == 11 ~ 6,  # College of higher education = ISCED 6
+  W4_f21310rec == 12 ~ 6,  # Uni of applied sciences = ISCED 6 (Ba4helor level)
+  W4_f21310rec == 13 ~ 7,  # University / Federal Institute of Tec4nology = ISCED 7 (Master)
+  W4_f21310rec == 14 ~ NA   # other
+),
+
+public_sector = if_else(W1_4_f21700 == 2, 1, 0),
+canton = as_character(W4_canton_sample),
+langue = relevel(factor(as_character(W4_langint)), ref = "German"),
+
+#isco08_4d = isco08_swap(W1_ISCO08prof_2dig, from = 2, to = 3),
+
+main_activity = case_when(
+  
+  # comme il s'agit de la 4eme vague, la question si la situation de travail a changé doit etre prise en compte, si W4_f21300 == 0, la situation n'a pas changé depuis vague 1 (W1)
+  W4_f21300 == 0 & W1_f21400 %in% c(1, 2, 7) ~ 1, # working
+  W4_f21300 == 0 & W1_f21400 %in% c(3) ~ 2, # in training/education
+  W4_f21300 == 0 & W1_f21400 %in% c(6) ~ 3, # disability
+  W4_f21300 == 0 & W1_f21400 %in% c(4, 8) ~ 4, # no paid work
+  W4_f21300 == 0 & W1_f21400 %in% c(5) ~ 5, # retired
+  
+  W4_f21300 == 1 & W4_f21400 %in% c(1, 2, 7) ~ 1, # working
+  W4_f21300 == 1 & W4_f21400 %in% c(3) ~ 2, # in training/education
+  W4_f21300 == 1 & W4_f21400 %in% c(6) ~ 3, # disability
+  W4_f21300 == 1 & W4_f21400 %in% c(4, 8) ~ 4, # no paid work
+  W4_f21300 == 1 & W4_f21400 %in% c(5) ~ 5 # retired
+  
+),
+
+# Prise en compte du changement depuis W1, comme pour main_activity
+work_status = case_when(
+  W4_f21300 == 0 & W1_f21500 == 4 ~ 1, # self-employed
+  W4_f21300 == 0 & W1_f21500 %in% c(1, 2, 3) ~ 0, # employee
+  W4_f21300 == 0 & is.na(W1_f21500) ~ 2, # not employed
+  
+  W4_f21300 == 1 & W4_f21500 == 4 ~ 1, # self-employed
+  W4_f21300 == 1 & W4_f21500 %in% c(1, 2, 3) ~ 0, # employee
+  W4_f21300 == 1 & is.na(W4_f21500) ~ 2 # not employed
+),
+
+
+main_activity2 = case_when(
+  
+  W1_4_f21400 %in% c(1, 2, 7) ~ 1, # working
+  W1_4_f21400 %in% c(3) ~ 2, # in training/education
+  W1_4_f21400 %in% c(6) ~ 3, # disability
+  W1_4_f21400 %in% c(4, 8) ~ 4, # no paid work
+  W1_4_f21400 %in% c(5) ~ 5 # retired
+  
+),
+
+work_status2 = case_when(
+  W1_4_f21500 == 4 ~ 1, # self-employed
+  W1_4_f21500 %in% c(1, 2, 3) ~ 0, # employee
+  is.na(W1_4_f21500) ~ 2 # not employed
+),
+
+
+eseg = isco08_to_eseg(isco08, work_status = work_status2, main_activity = main_activity2, age = W4_age, to_factor = FALSE, type = "two-digit", label = FALSE),
+
+yes_premium_initiative = if_else(W4_f10771a == 1, 1,
+                                 if_else(is.na(W4_f10771a), NA, 0)),
+
+yes_biodiversity_initiative =  if_else(W4_f10751a == 1, 1,
+                                 if_else(is.na(W4_f10751a), NA, 0)),
+
+yes_pension_reform = if_else(W4_f10751b == 1, 1,
+                                 if_else(is.na(W4_f10751b), NA, 0)),
+
+yes_13th_pension_payment = if_else(W4_f10791 == 1, 1,
+                                 if_else(is.na(W4_f10791), NA, 0)),
+
+  
+)
+
+
+selects2023panelW4_2 = selects2023panelW4_2 %>% 
+  mutate(
+     eseg9 = case_when(
+       eseg %in% c(1.1, 1.2, 1.3, 1.4) ~ "Managers",
+       eseg %in% c(2.1, 2.2, 2.3, 2.4, 2.5) ~ "Professionals",
+       eseg %in% c(3.1, 3.2, 3.3, 3.4, 3.5) ~ "Technicians and associated professionals employees",
+       eseg %in% c(4.1, 4.2, 4.3) ~ "small entrepreneurs",
+       eseg %in% c(5.1, 5.2, 5.3, 5.4) ~ "Clerks and skilled service employees",
+       eseg %in% c(6.1, 6.2, 6.3, 6.4, 6.5) ~ "Skilled industrial employees",
+       eseg %in% c(7.1, 7.2, 7.3, 7.4) ~ "Lower status employees",
+       eseg %in% c(8.8) ~ "Retired",
+       eseg %in% c(9.1) ~ "Student",
+       eseg %in% c(9.2, 9.3) ~ "Unemployed or disabled"
+     ),
+     
+     eseg10 = case_when(
+       eseg %in% c(1.1, 1.2, 1.3, 1.4) ~ "Managers",
+       eseg %in% c(2.1, 2.2, 2.4, 2.5) ~ "Professionals",
+       eseg == 2.3 ~ "Business and administration professionals",
+       eseg %in% c(3.1, 3.2, 3.3, 3.4, 3.5) ~ "Technicians and associated professionals employees",
+       eseg %in% c(4.1, 4.2, 4.3) ~ "small entrepreneurs",
+       eseg %in% c(5.1, 5.2, 5.3, 5.4) ~ "Clerks and skilled service employees",
+       eseg %in% c(6.1, 6.2, 6.3, 6.4, 6.5) ~ "Skilled industrial employees",
+       eseg %in% c(7.1, 7.2, 7.3, 7.4) ~ "Lower status employees",
+       eseg %in% c(8.8) ~ "Retired",
+       eseg %in% c(9.1) ~ "Student",
+       eseg %in% c(9.2, 9.3) ~ "Unemployed or disabled"
+     )
+  )
+
+selects2023panelW4_2$eseg9 = relevel(as.factor(selects2023panelW4_2$eseg9), ref = "Managers")
+selects2023panelW4_2$eseg10 = relevel(as.factor(selects2023panelW4_2$eseg10), ref = "Business and administration professionals")
+
+# Schema de classe oesch
+
+# W4_f21300: Has R's professional situation changed in the past 12 months (e.g. new job, retirement, unemployment)
+
+# W1_4_f21500: R's current position at work, W1 updated with W4
+
+
+# W4_f21400: R's current working situation, if change in professional situation
+
+# W4_f21500: R's current position at work, if change in professional situation
+
+# W4_f21550: Number of persons employed at company, including R, if change in professional situation
+
+# W4_f21550_W1self: Asked to self-employed from W1 if no change in professional situation: number of persons employed at company, including R
+
+selects2023panelW4_2 <- selects2023panelW4_2 %>% 
+  mutate(
+    
+    self_employed = case_when(
+      W1_4_f21500 == 4 ~ 1, # self employed
+      W1_4_f21500 %in% c(1, 2, 3) ~ 0 # employee
+    ),
+    
+    n_employees = case_when(
+      W4_f21300 == 0 ~ W4_f21550_W1self,
+      W4_f21300 == 1 ~ W4_f21550
+    ),
+    
+    oesch8 = isco08_to_oesch(W1_4_f21601_2dig*100, self_employed = self_employed, n_employees = n_employees, n_classes = 8, to_factor = T, label = T)
+    
+  )
+
+selects2023panelW4_2$vote_choice = factor(as_label(selects2023panelW4_2$vote_choice))
 
 
 ```
+
+
+```{r premium initiative analysis}
+library(lme4)
+library(marginaleffects)
+library(tidyverse)
+
+data_model_fit2 = selects2023panelW4_2 %>% 
+  dplyr::select(yes_premium_initiative, eseg10, income_adj_decile, education_ISCED, lr, op_state_intervention, op_2many_worries_abt_env_vs_prices, op_min_wage, op_incr_retirement_age, op_foreigners_votingrights, vote_choice, gender, W4_age, language, canton) %>% 
+  drop_na()
+
+
+
+
+
+model_glm1 = glm(data = data_model_fit2,
+                 yes_premium_initiative ~ income_adj_decile + education_ISCED + eseg10 + lr + op_state_intervention + op_2many_worries_abt_env_vs_prices + op_min_wage + op_incr_retirement_age + op_foreigners_votingrights + vote_choice + gender + W4_age + language + canton,
+                  family = binomial(link = "logit"))
+
+#best_model_glm1 = stepAIC(model_glm1)
+
+best_model_glm2 = glm(formula = yes_premium_initiative ~ income_adj_decile + I(eseg10 == "Retired") + lr + op_state_intervention + op_2many_worries_abt_env_vs_prices + op_min_wage + op_incr_retirement_age + op_foreigners_votingrights + vote_choice + gender + W4_age + language, family = binomial(link = "logit"), 
+                      data = data_model_fit2)
+
+avg_slopes_tbl_bestmodelW4 = best_model_glm2 %>% 
+  avg_slopes() %>% 
+  drop_na()
+
+```
+
+```{r premium initiative model diagnostics and final table}
+library(performance)
+
+model2_performance = model_performance(best_model_glm2)
+
+avg_slopes_tbl_bestmodelW4 <- 
+  avg_slopes_tbl_bestmodelW4 %>% 
+  mutate(
+    stars = case_when(
+      p.value <= 0.001 ~ "***",
+      p.value <= 0.01 ~ "**",
+      p.value <= 0.05 ~ "*",
+      p.value <= 0.1 ~ "+",
+      p.value > 0.1 ~ ""
+    )
+  )
+
+
+tbl_model2 <- 
+avg_slopes_tbl_bestmodelW4 %>% 
+  gt() %>% 
+  fmt_number(
+    decimals = 4
+  ) %>% 
+  cols_merge(columns = c("estimate", "std.error", "stars"),
+             pattern = "<<{1}{3}<br>({2})>>") %>% 
+  tab_header(
+    title = "Résultats: vote sur l'initiative d'allègement des primes",
+    subtitle = "Effets et contrastes marginaux moyens prédits par le modèle"
+  ) %>% 
+  tab_source_note(
+    source_note = md(
+      paste0(
+        "**R² Tjur** = ", round(model2_performance$R2, 3), "<br>",
+        "**RMSE** = ", round(model2_performance$RMSE, 3), "<br>",
+        "**N** = ", nrow(data_model_fit)
+      )
+    )
+  ) %>% 
+  tab_source_note(
+    source_note = "+ p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.01"
+  ) %>% 
+  text_replace(
+    pattern = "^W4_age$",
+    replacement = "Âge"
+  ) %>% 
+  text_replace(
+    pattern = "^eseg10$",
+    replacement = "Catégorie socio-professionnelle"
+  ) %>% 
+  text_replace(
+    pattern = "^gender$",
+    replacement = "Genre"
+  ) %>% 
+  text_replace(
+    pattern = "^income_adj_decile$",
+    replacement = "Décile du revenu ajusté du ménage"
+  ) %>% 
+  text_replace(
+    pattern = "^language$",
+    replacement = "Langue"
+  ) %>% 
+  text_replace(
+    pattern = "^lr$",
+    replacement = "Auto-positionnement gauche-droite"
+  ) %>% 
+  text_replace(
+    pattern = "^op_2many_worries_abt_env_vs_prices$",
+    replacement = "Opinion: Trop de préoccupation pour l'environnement par rapport aux coûts et aux prix"
+  ) %>% 
+  text_replace(
+    pattern = "^op_foreigners_votingrights$",
+    replacement = "Opinion: pour le droit de vote aux étrangers"
+  ) %>% 
+  text_replace(
+    pattern = "^op_incr_retirement_age$",
+    replacement = "Opinion: augmenter l'âge du départ à la retraite"
+  ) %>% 
+  text_replace(
+    pattern = "^op_min_wage$",
+    replacement = "Opinion: augmenter le salaire minimum"
+  ) %>% 
+  text_replace(
+    pattern = "^op_state_intervention$",
+    replacement = "Opinion: État vs marché et concurrence"
+  ) %>% 
+  text_replace(
+    pattern = "^vote_choice$",
+    replacement = "Vote si élections ce dimanche"
+  )
+  
+
+
+#tbl_model2 %>% 
+ #   gtsave(filename = "tbl_model2.tex")
+
+
+tbl_model2
+
+```
+
+```{r model franchise checks}
+#| fig-height: 10
+#| fig-width: 10
+library(performance)
+
+check_model(model1_step2)
+```
+
+```{r model premium checks}
+#| fig-height: 10
+#| fig-width: 10
+check_model(best_model_glm2)
+```
+
+
+
+
+
+
+
+
+
