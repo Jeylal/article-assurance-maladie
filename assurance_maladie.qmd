@@ -276,16 +276,16 @@ plot_subventions3
 
 ```
 
-## Votation
+## Votations cartes
 
 ```{r votation merging}
 #| echo: false
 #| message: false
 #| warning: false
 
-
 library(tidyverse)
 library(readr)
+library(readxl)
 
 votations2024 <- read_excel("data/votations2024.xlsx", 
     col_types = c("numeric", "text", "numeric", 
@@ -345,7 +345,7 @@ datamap2 %>%
 
 library(biscale)
 
-biclass = bi_class(datamap2, x = median_reinka, y = efas_oui, style = "quantile", dim = 3, na_rm = TRUE)
+biclass = bi_class(datamap3, x = median_reinka, y = allegement_primes_oui, style = "quantile", dim = 3, na_rm = TRUE)
 
 bimap = 
 ggplot() +
@@ -353,9 +353,9 @@ ggplot() +
   bi_scale_fill(pal = "GrPink", dim = 3) +
   bi_theme(base_size = 10)+
   labs(
-    title = "Votation sur le financement uniforme des prestations de santé",
-    caption = " Pour chaque commune, le pourcentage de oui à la votation de novembre 2024 
-    sur l'uniformation du financement des prestations de santé.
+    subtitle = "Votation sur l'initiative d'allègement des primes",
+    caption = " Pour chaque commune, le pourcentage de oui à
+    l'initiative pour l'allègement des primes de l'assurance-maladie obligatoire.
     Le revenu médian correspond à la médiane du revenu équivalent net en 2022 (en franc). Source: OFS"
   )
 
@@ -366,10 +366,48 @@ legend <- bi_legend(pal = "GrPink",
                     size = 8)
 library(cowplot)
 
+carte_prime_revenu <- 
 ggdraw() +
   draw_plot(bimap, 0, 0, 1, 1) +
   draw_plot(legend, 0.05, .65, 0.2, 0.2)
 
+
+#ggsave("carte_allegement_prime.png", carte_prime_revenu)
+
+primes_standard_cantons_2024 <- read_excel("data/primes_standard_cantons_2024.xlsx")
+
+datamap3 <- 
+  datamap2 %>% 
+  left_join(primes_standard_cantons_2024, by = "No canton") %>% 
+  mutate(
+    primes_reinka = primes_standard_canton/median_reinka
+  )
+
+bimap2 = 
+ggplot() +
+  geom_sf(data = biclass, mapping = aes(geometry = geometry, fill = bi_class), color = "white", size = 0.1, show.legend = F) +
+  bi_scale_fill(pal = "GrPink", dim = 3) +
+  bi_theme(base_size = 10)+
+  labs(
+    subtitle = "Votation sur l'initiative d'allègement des primes",
+    caption = " Pour chaque commune, le pourcentage de oui à
+    l'initiative pour l'allègement des primes de l'assurance-maladie obligatoire,
+    ainsi que les primes standards de l'AOS en % du revenu disponible médian. Source: OFS"
+  )
+
+legend2 <- bi_legend(pal = "GrPink",
+                    dim = 3,
+                    xlab = "Primes standards en % du revenu médian",
+                    ylab = "Oui en %",
+                    size = 5)
+library(cowplot)
+
+carte_prime_revenu <- 
+ggdraw() +
+  draw_plot(bimap2, 0, 0, 1, 1) +
+  draw_plot(legend2, 0.05, .65, 0.2, 0.2)
+
+#ggsave("carte_allegement_prime_standards.png", carte_prime_revenu)
 ```
 
 
