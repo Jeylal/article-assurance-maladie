@@ -12,6 +12,17 @@ format:
     toc: true
   pdf:
     pdf-engine: lualatex
+    include-in-header:
+      text: |
+        \usepackage{tabularray}
+        \usepackage{float}
+        \usepackage{graphicx}
+        \usepackage[normalem]{ulem}
+        \UseTblrLibrary{booktabs}
+        \UseTblrLibrary{siunitx}
+        \newcommand{\tinytableTabularrayUnderline}[1]{\underline{#1}}
+        \newcommand{\tinytableTabularrayStrikeout}[1]{\sout{#1}}
+        \NewTableCommand{\tinytableDefineColor}[3]{\definecolor{#1}{#2}{#3}}
   docx: default
 editor: visual
 execute: 
@@ -21,6 +32,8 @@ execute:
   echo: false 
 draft: false
 lang: fr
+
+
 ---
 
 ```{r set up}
@@ -33,49 +46,12 @@ options(scipen = 100, digits = 4)
 library(tidyverse)
 library(readr)
 library(quarto)
+library(sjPlot)
 votation_allegement_prime <- read_delim("data/votation_allegement_prime.csv", 
     delim = ";", escape_double = FALSE, trim_ws = TRUE)
 ```
 
-## Swissvotes
 
-```{r tableau votation}
-#| echo: false
-#| message: false
-#| warning: false
-#| eval: true
-
-library(readr)
-swissvotes <- read_delim("data/swissvotes.csv", 
-    delim = ";", escape_double = FALSE, col_types = cols(d1e3 = col_double()), 
-    trim_ws = TRUE)
-
-
-swissvotes2 <- 
-swissvotes %>% 
-  filter(d1e3 %in% c("10.24", "10.11")) %>% 
-  dplyr::select(datum, titel_kurz_f, annahme, `volkja-proz`) %>% 
-  rename(
-    Date = "datum",
-    Votation = "titel_kurz_f",
-    `Résultat` = "annahme",
-    `% Oui` = "volkja-proz"
-  )
-
-library(gt)
-
-swissvotes_table <- 
-swissvotes2 %>% 
-  gt()
-
-
-#gtsave(swissvotes_table, "table_votations.png", expand = 15)
-
-swissvotes_table
-
-```
-
-## Faits stylisés
 
 ```{r set up faits stylises}
 #| echo: false
@@ -104,6 +80,8 @@ data_final_am <- read_excel("data_final_am.xlsx",
 #| echo: false
 #| message: false
 #| warning: false
+#| label: fig-ipam
+#| fig-cap: "Évolution de l'IPAM (indice des primes de l'assurance-maladie). Sources: OFS, OFSP, SECO."
 
 
 
@@ -131,7 +109,7 @@ data_final_am %>%
         text = element_text(size = 11.6))+
   guides(color = guide_legend(nrow = 2)) 
 
-plot1
+#plot1
 
 #ggsave("plot_ipam.jpg", plot1)
 
@@ -179,6 +157,8 @@ dep_quantiles %>%
 #| echo: false
 #| message: false
 #| warning: false
+#| label: fig-financement
+#| fig-cap: "Financement du système de santé suisse selon la source. Source: OFS"
 
 
 library(readr)
@@ -221,12 +201,17 @@ financement_sante2 %>%
   labs(x = "", y = "",
        subtitle = "Financement du système de santé selon la source")
 
-graph_financement
+#graph_financement
 #ggsave("graph_financement.png", graph_financement)  
   
 ```
 
 ```{r graph subventions lamal}
+#| fig-height: 10
+#| fig-width: 15
+#| label: fig-dep
+#| fig-cap: "Statistiques de l'évolution des primes, des subventions aux primes ainsi que de la part des primes dans le budget des ménages. Source: OFS."
+
 library(readxl)
 subventions <- read_excel("data_final_am.xlsx", 
     sheet = "graphique3") %>% 
@@ -268,15 +253,14 @@ dep_quantiles %>%
                          name = "Quintile")+
   theme(text = element_text(size = 16))
 
-plot_subventions3 <- grid.arrange(arrangeGrob(plot_subvention1, plot_subventions2, ncol = 1), plot2, ncol = 2)
+#plot_subventions3 <- grid.arrange(arrangeGrob(plot_subvention1, plot_subventions2, ncol = 1), plot2, ncol = 2)
 
 #ggsave("graph_subventions.png", plot_subventions3, width = 60, height = 30, units = "cm")
 
-plot_subventions3
+#plot_subventions3
 
 ```
 
-## Votations cartes
 
 ```{r votation merging}
 #| echo: false
@@ -328,49 +312,49 @@ datamap2 = efas_votation_commune[, c(1, 3, 4, 13)] %>%
   left_join(datamap, by = c("No commune" = "Gemeindenummer")) %>% 
   rename("efas_oui" = `Oui en %`)
 
-datamap %>% 
-  ggplot()+ 
-  geom_sf(aes(geometry = geometry, fill = allegement_primes_oui))+
-  theme_void()+
-  scale_fill_viridis_b()+
-  theme(legend.position = "bottom") 
+#datamap %>% 
+#  ggplot()+ 
+#  geom_sf(aes(geometry = geometry, fill = allegement_primes_oui))+
+#  theme_void()+
+#  scale_fill_viridis_b()+
+#  theme(legend.position = "bottom") 
 
-datamap2 %>% 
-  ggplot()+ 
-  geom_sf(aes(geometry = geometry, fill = efas_oui))+
-  theme_void()+
-  scale_fill_viridis_c(option = "turbo", direction = -1)+
-  theme(legend.position = "bottom") 
+#datamap2 %>% 
+#  ggplot()+ 
+#  geom_sf(aes(geometry = geometry, fill = efas_oui))+
+#  theme_void()+
+#  scale_fill_viridis_c(option = "turbo", direction = -1)+
+#  theme(legend.position = "bottom") 
 
 
 library(biscale)
-
-biclass = bi_class(datamap3, x = median_reinka, y = allegement_primes_oui, style = "quantile", dim = 3, na_rm = TRUE)
-
-bimap = 
-ggplot() +
-  geom_sf(data = biclass, mapping = aes(geometry = geometry, fill = bi_class), color = "white", size = 0.1, show.legend = F) +
-  bi_scale_fill(pal = "GrPink", dim = 3) +
-  bi_theme(base_size = 10)+
-  labs(
-    subtitle = "Votation sur l'initiative d'allègement des primes",
-    caption = " Pour chaque commune, le pourcentage de oui à
-    l'initiative pour l'allègement des primes de l'assurance-maladie obligatoire.
-    Le revenu médian correspond à la médiane du revenu équivalent net en 2022 (en franc). Source: OFS"
-  )
-
-legend <- bi_legend(pal = "GrPink",
-                    dim = 3,
-                    xlab = "Revenu médian",
-                    ylab = "Oui en %",
-                    size = 8)
 library(cowplot)
 
-carte_prime_revenu <- 
-ggdraw() +
-  draw_plot(bimap, 0, 0, 1, 1) +
-  draw_plot(legend, 0.05, .65, 0.2, 0.2)
-
+#biclass = bi_class(datamap2, x = median_reinka, y = efas_oui, style = "quantile", dim = 3, na_rm = TRUE)
+#
+#bimap = 
+#ggplot() +
+#  geom_sf(data = biclass, mapping = aes(geometry = geometry, fill = bi_class), color = "white", size = 0.1, show.legend = F) #+
+#  bi_scale_fill(pal = "GrPink", dim = 3) +
+#  bi_theme(base_size = 10)+
+#  labs(
+#    subtitle = "Votation EFAS",
+#    caption = " Pour chaque commune, le pourcentage de oui à
+#    l'initiative pour la réforme EFAS.
+#    Le revenu médian correspond à la médiane du revenu équivalent net en 2022 (en franc). Source: OFS"
+#  )
+#
+#legend <- bi_legend(pal = "GrPink",
+#                    dim = 3,
+#                    xlab = "Revenu médian",
+#                    ylab = "Oui en %",
+#                    size = 8)
+#
+#carte_efas_revenu <- 
+#ggdraw() +
+#  draw_plot(bimap, 0, 0, 1, 1) +
+#  draw_plot(legend, 0.05, .65, 0.2, 0.2)
+#
 
 #ggsave("carte_allegement_prime.png", carte_prime_revenu)
 
@@ -382,6 +366,8 @@ datamap3 <-
   mutate(
     primes_reinka = primes_standard_canton/median_reinka
   )
+
+biclass = bi_class(datamap3, x = median_reinka, y = allegement_primes_oui, style = "quantile", dim = 3, na_rm = TRUE)
 
 bimap2 = 
 ggplot() +
@@ -400,7 +386,6 @@ legend2 <- bi_legend(pal = "GrPink",
                     xlab = "Primes standards en % du revenu médian",
                     ylab = "Oui en %",
                     size = 5)
-library(cowplot)
 
 carte_prime_revenu <- 
 ggdraw() +
@@ -412,7 +397,6 @@ ggdraw() +
 
 
 
-## Selects panel 2023 Minimum franchise
 
 ```{r setup selects2023 panel}
 #| echo: false
@@ -420,7 +404,6 @@ ggdraw() +
 #| warning: false
 
 
-rm(list=ls())
 library(haven)
 library(tidyverse)
 library(marginaleffects)
@@ -524,8 +507,8 @@ eseg = isco08_to_eseg(isco08, work_status = work_status, main_activity = main_ac
 
 )
 
-selects2023panel2$assurance_maladie_franchise_pour = selects2023panel2$assurance_maladie_franchise_pour %>% 
-  as.ordered()
+#selects2023panel2$assurance_maladie_franchise_pour = selects2023panel2$assurance_maladie_franchise_pour %>% 
+ # as.ordered()
 
 
 selects2023panel2 = selects2023panel2 %>% 
@@ -561,14 +544,14 @@ selects2023panel2 = selects2023panel2 %>%
                                       if_else(is.na(assurance_maladie_franchise_pour), NA, 0))
   )
 
-selects2023panel2 %>% 
-  group_by(eseg10) %>% 
-  count(assurance_maladie_franchise_pour %in% c(1, 2)) %>% 
-  mutate(prop = n/sum(n)) %>% 
-  ungroup() %>% 
-  filter(`assurance_maladie_franchise_pour %in% c(1, 2)` == TRUE) %>% 
-  ggplot(aes(x = prop, y = eseg10))+
-  geom_point()
+#selects2023panel2 %>% 
+#  group_by(eseg10) %>% 
+#  count(assurance_maladie_franchise_pour %in% c(1, 2)) %>% 
+#  mutate(prop = n/sum(n)) %>% 
+#  ungroup() %>% 
+#  filter(`assurance_maladie_franchise_pour %in% c(1, 2)` == TRUE) %>% 
+#  ggplot(aes(x = prop, y = eseg10))+
+#  geom_point()
 ```
 
 ```{r model 1 fit}
@@ -598,14 +581,9 @@ model1_step2 = glm(formula = contre_augm_franch_min ~ income_adj_decile + op_lim
     langue + W1_age + gender, family = binomial(link = "logit"), 
     data = data_model_fit)
 
-
-#----------------------------------------------------------------------------------------------------------------------------------------#
-
-
-## model diagnostic
-
 library(performance)
-model1_performance = model_performance(model1_step2) 
+model1_performance <- model_performance(model1_step2)
+
 ```
 
 ```{r model 1 quantities of interest}
@@ -629,9 +607,8 @@ avg_slopes_tbl_model1 <-
     )
   )
 
-cbind(avg_slopes_tbl_model1, model1_performance)
-
 library(gt)
+
 tbl_model1 <- 
 avg_slopes_tbl_model1 %>% 
   gt() %>% 
@@ -655,18 +632,83 @@ avg_slopes_tbl_model1 %>%
   ) %>% 
   tab_source_note(
     source_note = "+ p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.01"
-  ) 
+  ) %>% 
+  text_replace(
+    pattern = "^W1_age$",
+    replacement = "Âge"
+  ) %>% 
+  text_replace(
+    pattern = "^gender$",
+    replacement = "Genre"
+  ) %>% 
+  text_replace(
+    pattern = "^income_adj_decile$",
+    replacement = "Décile de revenu ajusté du ménage"
+  ) %>% 
+  text_replace(
+    pattern = "^language$",
+    replacement = "Langue"
+  ) %>% 
+  text_replace(
+    pattern = "^op_chances_foreigners$",
+    replacement = "Opinion: égalité des chances entre suisses et étrangers"
+  ) %>% 
+    text_replace(
+    pattern = "^op_eu_integration$",
+    replacement = "Opinion: intégration européenne"
+  ) %>% 
+    text_replace(
+    pattern = "^op_gender_equality$",
+    replacement = "Opinion: égalité des genres"
+  ) %>% 
+    text_replace(
+    pattern = "^op_incr_retirementAge$",
+    replacement = "Opinion: augmenter l'âge du départ à la retraite"
+  ) %>% 
+    text_replace(
+    pattern = "^op_limit_immigration$",
+    replacement = "Opinion: limiter l'immigration"
+  ) %>% 
+    text_replace(
+    pattern = "^op_min_wage$",
+    replacement = "Opinion: augmentation du salaire minimum"
+  ) %>% 
+    text_replace(
+    pattern = "^op_protec_env$",
+    replacement = "Opinion: protection de l'environnement"
+  ) %>% 
+  text_replace(
+    pattern = "^op_taxes_high_income$",
+    replacement = "Opinion: augmenter la taxation des hauts revenus"
+  ) %>% 
+  text_replace(
+    pattern = "^op_social_expenses$",
+    replacement = "Opinion: augmenter les dépenses sociales"
+  ) %>% 
+  text_replace(
+    pattern = "^probs_vote_ps$",
+    replacement = "Probabilité de voter Parti Socialiste sur une échelle de 1 à 10"
+  ) %>% 
+  text_replace(
+    pattern = "^probs_vote_verts$",
+    replacement = "Probabilité de voter Les Verts sur une échelle de 1 à 10"
+  ) %>% 
+text_replace(
+    pattern = "^probs_vote_vertsliberaux$",
+    replacement = "Probabilité de voter Verts-Libérauxy sur une échelle de 1 à 10"
+  ) %>% 
+  text_replace(
+    pattern = "^probs_vote_centre$",
+    replacement = "Probabilité de voter Le Centre sur une échelle de 1 à 10"
+  )
 
 #tbl_model1 %>% 
-    #gtsave(filename = "tbl_model1.png")
+#    gtsave(filename = "tbl_model1.png")
 
-tbl_model1
+#tbl_model1
 
 ```
 
-
-
-## Selects Panel Wave 4 (Premium relief initiative)
 
 
 ```{r selects panel for wave 4 setup}
@@ -936,7 +978,8 @@ avg_slopes_tbl_bestmodelW4 = best_model_glm2 %>%
 
 ```
 
-```{r premium initiative model diagnostics and final table}
+```{r premium initiative model}
+
 library(performance)
 
 model2_performance = model_performance(best_model_glm2)
@@ -1033,13 +1076,160 @@ avg_slopes_tbl_bestmodelW4 %>%
  #   gtsave(filename = "tbl_model2.tex")
 
 
-tbl_model2
+#tbl_model2
+
 
 ```
 
+
+## Annexe
+
+```{r tableau votation}
+#| echo: false
+#| message: false
+#| warning: false
+#| eval: false
+#| label: tbl-votations
+#| tbl-cap: "Votations en lien avec le système de santé en Suisse depuis 1848. Source: Swissvote"
+
+library(readr)
+
+
+swissvotes <- read_delim("data/swissvotes.csv", 
+    delim = ";", escape_double = FALSE, col_types = cols(d1e3 = col_double()), 
+    trim_ws = TRUE)
+
+
+swissvotes2 <- 
+swissvotes %>% 
+  filter(d1e3 %in% c("10.24", "10.11")) %>% 
+  dplyr::select(datum, titel_kurz_f, annahme, `volkja-proz`) %>% 
+  rename(
+    Date = "datum",
+    Votation = "titel_kurz_f",
+    `Résultat` = "annahme",
+    `% Oui` = "volkja-proz"
+  )
+
+library(gt)
+
+swissvotes_table <- 
+swissvotes2 %>% 
+  gt()
+
+
+#gtsave(swissvotes_table, "table_votations.png", expand = 15)
+
+swissvotes_table
+
+```
+
+
+```{r stats descriptives variables vague 1}
+#| label: tbl-descriptivemodeldep
+#| tbl-cap: "Statistiques descriptives: Panel Selects vague 1"
+#| message: false
+#| warning: false
+
+library(gtsummary)
+library(sjlabelled)
+library(modelsummary)
+
+selects2023panel2$assurance_maladie_franchise_pour <- labelled(selects2023panel2$assurance_maladie_franchise_pour, labels = c("Fortement contre" = 1, "Contre" = 2, "Ni pour, ni contre" = 3, "Pour" = 4, "Fortement pour" = 5))
+
+
+selects2023panel2 %>% 
+   dplyr::select(assurance_maladie_franchise_pour, eseg10, lr, income_adj_decile, education_ISCED, op_limit_immigration, op_funding_childcare, op_protec_env, op_state_interv, op_social_expenses, op_eu_integration, op_chances_foreigners, op_gender_equality, op_taxes_high_income, op_traditions, op_min_wage, op_incr_retirementAge, probs_vote_plr, probs_vote_centre, probs_vote_ps, probs_vote_udc, probs_vote_verts, probs_vote_vertsliberaux, canton, langue, W1_age, gender) %>% 
+  rename(opinion_augmentation_franchise = "assurance_maladie_franchise_pour") %>% 
+  mutate(across(starts_with("op"), as_label)) %>% 
+  mutate(across(starts_with("opinion_augmentation_franchise"), as_label)) %>% 
+  datasummary_skim()
+
+```
+
+
+```{r stats descriptives variables explicatives second model}
+
+#| label: tbl-descriptivemodel2
+#| tbl-cap: "Statistiques descriptives: Panel Selects vague 4."
+#| message: false
+#| warning: false
+
+selects2023panelW4_2 %>% 
+  dplyr::select(W4_f10771a, yes_premium_initiative, eseg10, income_adj_decile, education_ISCED, lr, op_state_intervention, op_2many_worries_abt_env_vs_prices, op_min_wage, op_incr_retirement_age, op_foreigners_votingrights, vote_choice, gender, W4_age, language, canton) %>% 
+  mutate(across(starts_with("op"), as_label)) %>%
+  mutate(across(starts_with("W4_f10771a"), as_label)) %>% 
+  datasummary_skim()
+
+
+```
+
+
+
+
+```{r tables reg logit}
+#| tbl-cap: "Régressions logit (log(odd))"
+#| label: tbl-reglogit
+
+library(modelsummary)
+modelsummary(list("Augmentation franchise minimale" = model1_step2, "Initiative pour l'allègement des primes" = best_model_glm2), stars = T)
+```
+
+
+
+```{r glmer canton}
+
+library(sjPlot)
+library(lme4)
+library(gt)
+library(gtsummary)
+library(modelsummary)
+glmer_canton_franchise = glmer(data = selects2023panel2,
+                               contre_augm_franch_min ~ 1 + (1|canton),
+                               family = binomial(link = "logit"))
+
+glmer_canton_primes = glmer(data = selects2023panelW4_2,
+                               yes_premium_initiative ~ 1 + (1|canton),
+                            family = binomial(link = "logit"))
+
+
+```
+
+
+```{r glmer table resultats}
+#| label: tbl-canton
+#| tbl-cap: "Modèle multiniveau: cantons suisses en niveau" 
+
+
+modelsummary(models = list("Augmentation franchise minimale" = glmer_canton_primes, "Initiative pour l'allègement des primes" = glmer_canton_franchise))
+```
+
+
+```{r glm eseg}
+#| tbl-cap: "Régressions logistiques simples: opposition à l'augmentation de la franchise et vote pour l'allègement des primes sur les catégories socio-professionnelles ESEG (Log(Odd))"
+#| label: tbl-reg2
+
+glm_eseg_franchise = glm(data = selects2023panel2,
+                               contre_augm_franch_min ~ eseg10,
+                               family = binomial(link = "logit"))
+
+glm_eseg_primes = glm(data = selects2023panelW4_2,
+                               yes_premium_initiative ~ eseg10,
+                            family = binomial(link = "logit"))
+
+modelsummary(list("Augmentation franchise minimale" = glm_eseg_franchise, "Initiative pour l'allègement des primes" = glm_eseg_primes), stars = T)
+```
+
+
+
+
+
+
 ```{r model franchise checks}
 #| fig-height: 10
-#| fig-width: 10
+#| fig-width: 15
+#| label: fig-check1
+#| fig-cap: "Vérification des hypothèses du modèle logit: augmentation de la franchise minimale"
 library(performance)
 
 check_model(model1_step2)
@@ -1047,7 +1237,9 @@ check_model(model1_step2)
 
 ```{r model premium checks}
 #| fig-height: 10
-#| fig-width: 10
+#| fig-width: 15
+#| label: fig-check2
+#| fig-cap: "Vérification des hypothèse du modèle logit: initiative pour l'allègement des primes"
 check_model(best_model_glm2)
 ```
 
