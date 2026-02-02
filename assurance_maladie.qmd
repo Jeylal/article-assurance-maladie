@@ -358,6 +358,8 @@ library(cowplot)
 
 #ggsave("carte_allegement_prime.png", carte_prime_revenu)
 
+library(readxl)
+
 primes_standard_cantons_2024 <- read_excel("data/primes_standard_cantons_2024.xlsx")
 
 datamap3 <- 
@@ -1088,7 +1090,7 @@ avg_slopes_tbl_bestmodelW4 %>%
 #| echo: false
 #| message: false
 #| warning: false
-#| eval: false
+#| eval: true
 #| label: tbl-votations
 #| tbl-cap: "Votations en lien avec le système de santé en Suisse depuis 1848. Source: Swissvote"
 
@@ -1118,9 +1120,9 @@ swissvotes2 %>%
   gt()
 
 
-#gtsave(swissvotes_table, "table_votations.png", expand = 15)
+#gtsave(swissvotes_table, "annexe/table_votations.png", expand = 15)
 
-swissvotes_table
+#swissvotes_table
 
 ```
 
@@ -1137,13 +1139,35 @@ library(modelsummary)
 
 selects2023panel2$assurance_maladie_franchise_pour <- labelled(selects2023panel2$assurance_maladie_franchise_pour, labels = c("Fortement contre" = 1, "Contre" = 2, "Ni pour, ni contre" = 3, "Pour" = 4, "Fortement pour" = 5))
 
-
+tbl_descr1 <- 
 selects2023panel2 %>% 
-   dplyr::select(assurance_maladie_franchise_pour, eseg10, lr, income_adj_decile, education_ISCED, op_limit_immigration, op_funding_childcare, op_protec_env, op_state_interv, op_social_expenses, op_eu_integration, op_chances_foreigners, op_gender_equality, op_taxes_high_income, op_traditions, op_min_wage, op_incr_retirementAge, probs_vote_plr, probs_vote_centre, probs_vote_ps, probs_vote_udc, probs_vote_verts, probs_vote_vertsliberaux, canton, langue, W1_age, gender) %>% 
+   dplyr::select(assurance_maladie_franchise_pour, eseg10, lr, education_ISCED, langue, W1_age, gender) %>% 
   rename(opinion_augmentation_franchise = "assurance_maladie_franchise_pour") %>% 
   mutate(across(starts_with("op"), as_label)) %>% 
   mutate(across(starts_with("opinion_augmentation_franchise"), as_label)) %>% 
-  datasummary_skim()
+  datasummary_skim(output = "gt")
+
+#gtsave(tbl_descr1, "annexe/table_stats_descriptive_model1.png")
+
+library(ggstats)
+
+likert1 <- 
+selects2023panel2 %>% 
+  select(op_limit_immigration, op_funding_childcare , op_protec_env, op_min_wage, op_incr_retirementAge) %>% 
+  gglikert_stacked()
+
+likert2 <- 
+selects2023panel2 %>% 
+  select(op_state_interv, op_social_expenses, op_eu_integration, op_chances_foreigners, op_gender_equality, op_taxes_high_income, op_traditions) %>% 
+  gglikert_stacked()+
+  theme(text = element_text(size = 5))
+
+likert3 <- 
+selects2023panel2 %>% 
+  select(probs_vote_plr, probs_vote_centre, probs_vote_ps, probs_vote_udc, probs_vote_verts, probs_vote_vertsliberaux) %>% 
+  gglikert_stacked()
+
+#ggsave("annexe/likert2.png", likert2)
 
 ```
 
@@ -1156,11 +1180,14 @@ selects2023panel2 %>%
 #| warning: false
 
 selects2023panelW4_2 %>% 
-  dplyr::select(W4_f10771a, yes_premium_initiative, eseg10, income_adj_decile, education_ISCED, lr, op_state_intervention, op_2many_worries_abt_env_vs_prices, op_min_wage, op_incr_retirement_age, op_foreigners_votingrights, vote_choice, gender, W4_age, language, canton) %>% 
-  mutate(across(starts_with("op"), as_label)) %>%
+  dplyr::select(yes_premium_initiative, eseg10, education_ISCED, lr, vote_choice, gender, W4_age, language, W4_f10771a) %>% 
   mutate(across(starts_with("W4_f10771a"), as_label)) %>% 
-  datasummary_skim()
+  datasummary_skim(output = "gt")
 
+likertW4 <- 
+selects2023panelW4_2 %>% 
+  select(op_state_intervention, op_2many_worries_abt_env_vs_prices, op_min_wage, op_incr_retirement_age, op_foreigners_votingrights) %>% gglikert_stacked()+
+  theme(text = element_text(size = 6))
 
 ```
 
@@ -1172,7 +1199,8 @@ selects2023panelW4_2 %>%
 #| label: tbl-reglogit
 
 library(modelsummary)
-modelsummary(list("Augmentation franchise minimale" = model1_step2, "Initiative pour l'allègement des primes" = best_model_glm2), stars = T)
+modelsummary(list("Augmentation franchise minimale" = model1_step2), stars = T, output = "annexe/table_regressions_logit_model1.png")
+modelsummary(list("Initiative pour l'allègement des primes" = best_model_glm2), stars = T, output = "annexe/table_regressions_logit_model2.png")
 ```
 
 
@@ -1201,7 +1229,7 @@ glmer_canton_primes = glmer(data = selects2023panelW4_2,
 #| tbl-cap: "Modèle multiniveau: cantons suisses en niveau" 
 
 
-modelsummary(models = list("Augmentation franchise minimale" = glmer_canton_primes, "Initiative pour l'allègement des primes" = glmer_canton_franchise))
+modelsummary(models = list("Augmentation franchise minimale" = glmer_canton_primes, "Initiative pour l'allègement des primes" = glmer_canton_franchise), output = "gt")
 ```
 
 
@@ -1217,7 +1245,7 @@ glm_eseg_primes = glm(data = selects2023panelW4_2,
                                yes_premium_initiative ~ eseg10,
                             family = binomial(link = "logit"))
 
-modelsummary(list("Augmentation franchise minimale" = glm_eseg_franchise, "Initiative pour l'allègement des primes" = glm_eseg_primes), stars = T)
+modelsummary(list("Augmentation franchise minimale" = glm_eseg_franchise, "Initiative pour l'allègement des primes" = glm_eseg_primes), stars = T, output = "annexe/regeseg.png")
 ```
 
 
@@ -1231,8 +1259,14 @@ modelsummary(list("Augmentation franchise minimale" = glm_eseg_franchise, "Initi
 #| label: fig-check1
 #| fig-cap: "Vérification des hypothèses du modèle logit: augmentation de la franchise minimale"
 library(performance)
+library(ggplotify)
 
+checkmodel1 <- 
 check_model(model1_step2)
+checkmodel1
+
+plot = plot(checkmodel1)
+ggsave("diagnosticfranchise.png", plot, width = 15, height = 10)
 ```
 
 ```{r model premium checks}
@@ -1240,7 +1274,12 @@ check_model(model1_step2)
 #| fig-width: 15
 #| label: fig-check2
 #| fig-cap: "Vérification des hypothèse du modèle logit: initiative pour l'allègement des primes"
+
+checkmodel2 <- 
 check_model(best_model_glm2)
+
+plot = plot(checkmodel2)
+ggsave("diagnosticprimes.png", plot, width = 15, height = 10)
 ```
 
 
