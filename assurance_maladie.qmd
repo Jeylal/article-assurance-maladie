@@ -32,9 +32,17 @@ execute:
   echo: false 
 draft: false
 lang: fr
-
-
 ---
+
+## Stratégie empirique pour les modèles de la section 4
+
+La spécification des modèles présentés dans la section 4 a pour objectif de reproduire une analyse néoréaliste des facteurs influençant les attentes sociales. Les variables dépendantes sont binarisées afin de conduire des estimations de modèles logistiques binaires en utilisant l’estimation du maximum de vraisemblance. La variable d’opinion sur l’augmentation de la franchise minimale de l’assurance-maladie de base est construite sur une échelle Likert de 1 (fortement contre) à 5 (fortement pour). Nous avons créé une variable dichotomique pour les deux premières catégories (fortement contre et contre). Pour le choix du vote pour l’initiative d’allègement des primes, nous avons dichotomisé en binarisant le vote en faveur de l’initiative. Les principales variables explicatives que nous avons considérées sont un indice de classe sociale mesurée par la classification européenne des groupes socioéconomiques (ESEG), le revenu mensuel brut du ménage, à partir duquel nous calculons le niveau de revenu par décile, ainsi qu’une batterie d’indicateurs socio-démographiques (âge, langue, cantons, genre) et idéologiques (auto-positionnement gauche-droite, vote, probabilité de vote pour les principaux partis politiques, opinions sur des sujets économiques et identitaires). Pour chacune de nos deux variables dépendantes, nous avons procédé à une sélection de modèle pas à pas descendante avec le critère d’information d’Akaike (AIC). Cette procédure a abouti au modèle suivant pour l’opposition à l’augmentation de la franchise minimale:
+
+$$
+P(y_i = 1) = logit^{-1}(\beta_0 + \beta_{d}D_i + \beta X_i + \gamma_p P_i + \eta_o O_i + \epsilon_i) 
+$$ {#eq-1}
+
+Avec $P(y_i = 1)$ la probabilité de l’individu $i$ d’être contre l’augmentation de la franchise minimale, $D_i$ le niveau de décile auquel appartient l’individu $i$, $X_i$ un vecteur de caractéristiques individuelles socio-démographique (âge, genre, langue), $P_i$ un vecteur de variable sur la probabilité de voter pour certains partis politiques suisses (Le Centre, le Parti Socialiste, les Verts et les Verts Libéraux) sur une échelle de 0 à 10, et $O_i$ l’opinion sur une série d’enjeux comme l’intégration européenne, le salaire minimum ou encore les dépenses sociales. $\epsilon_i$ est le terme d’erreur. De manière surprenante, la variable pour les groupes socio-économiques ESEG n’a pas été retenue par la procédure de sélection, ce qui implique que la classe sociale telle que mesurée par l’indice ESEG ne semble pas jouer un rôle déterminant par rapport au niveau de revenu et aux autres variables de contrôle Comme le schéma de classe ESEG est une variable importante pour notre analyse, nous considérons quand même les résultats d’une régression simple de nos deux variables dépendantes sur les catégories socio-professionnelles ESEG (résultats disponibles dans l’annexe). Encore plus étonnant, la variable contrôlant pour les cantons n’a pas non plus été retenue, ce qui suggère que l’effet d’appartenance à un canton est négligeable. Le coefficient de corrélation interclasse (ICC) calculé à partir d’un modèle multiniveau avec les cantons en tant que niveau confirme que les variations entre cantons sont faibles (voir annexe). Le modèle pour le vote en faveur de l’initiative pour l’allègement des primes prend une forme similaire à (1), avec quelques différences au niveau des variables retenues car certaines d’entre elles n’étaient pas disponible dans la quatrième vague. Comme pour le premier modèle, le schéma de classe ESEG n’a pas été retenu par la procédure de sélection, ni le canton de résidence.
 
 ```{r set up}
 #| echo: false
@@ -50,8 +58,6 @@ library(sjPlot)
 votation_allegement_prime <- read_delim("data/votation_allegement_prime.csv", 
     delim = ";", escape_double = FALSE, trim_ws = TRUE)
 ```
-
-
 
 ```{r set up faits stylises}
 #| echo: false
@@ -261,7 +267,6 @@ dep_quantiles %>%
 
 ```
 
-
 ```{r votation merging}
 #| echo: false
 #| message: false
@@ -366,10 +371,10 @@ datamap3 <-
   datamap2 %>% 
   left_join(primes_standard_cantons_2024, by = "No canton") %>% 
   mutate(
-    primes_reinka = primes_standard_canton/median_reinka
+    primes_reinka = `Prime standard de l'assurance-maladie obligatoire (en francs)`/median_reinka
   )
 
-biclass = bi_class(datamap3, x = median_reinka, y = allegement_primes_oui, style = "quantile", dim = 3, na_rm = TRUE)
+biclass = bi_class(datamap3, x = primes_reinka, y = allegement_primes_oui, style = "quantile", dim = 3, na_rm = TRUE)
 
 bimap2 = 
 ggplot() +
@@ -396,9 +401,6 @@ ggdraw() +
 
 #ggsave("carte_allegement_prime_standards.png", carte_prime_revenu)
 ```
-
-
-
 
 ```{r setup selects2023 panel}
 #| echo: false
@@ -711,8 +713,6 @@ text_replace(
 
 ```
 
-
-
 ```{r selects panel for wave 4 setup}
 library(haven)
 library(tidyverse)
@@ -951,7 +951,6 @@ selects2023panelW4_2$vote_choice = factor(as_label(selects2023panelW4_2$vote_cho
 
 ```
 
-
 ```{r premium initiative analysis}
 library(lme4)
 library(marginaleffects)
@@ -1083,8 +1082,7 @@ avg_slopes_tbl_bestmodelW4 %>%
 
 ```
 
-
-## Annexe
+## Matériel supplémentaire
 
 ```{r tableau votation}
 #| echo: false
@@ -1122,10 +1120,9 @@ swissvotes2 %>%
 
 #gtsave(swissvotes_table, "annexe/table_votations.png", expand = 15)
 
-#swissvotes_table
+swissvotes_table
 
 ```
-
 
 ```{r stats descriptives variables vague 1}
 #| label: tbl-descriptivemodeldep
@@ -1145,9 +1142,11 @@ selects2023panel2 %>%
   rename(opinion_augmentation_franchise = "assurance_maladie_franchise_pour") %>% 
   mutate(across(starts_with("op"), as_label)) %>% 
   mutate(across(starts_with("opinion_augmentation_franchise"), as_label)) %>% 
-  datasummary_skim(output = "gt")
+  datasummary_skim()
 
 #gtsave(tbl_descr1, "annexe/table_stats_descriptive_model1.png")
+
+tbl_descr1
 
 library(ggstats)
 
@@ -1169,7 +1168,11 @@ selects2023panel2 %>%
 
 #ggsave("annexe/likert2.png", likert2)
 
+likert1
+likert2
+likert3
 ```
+
 
 
 ```{r stats descriptives variables explicatives second model}
@@ -1182,36 +1185,38 @@ selects2023panel2 %>%
 selects2023panelW4_2 %>% 
   dplyr::select(yes_premium_initiative, eseg10, education_ISCED, lr, vote_choice, gender, W4_age, language, W4_f10771a) %>% 
   mutate(across(starts_with("W4_f10771a"), as_label)) %>% 
-  datasummary_skim(output = "gt")
+  datasummary_skim()
 
 likertW4 <- 
 selects2023panelW4_2 %>% 
   select(op_state_intervention, op_2many_worries_abt_env_vs_prices, op_min_wage, op_incr_retirement_age, op_foreigners_votingrights) %>% gglikert_stacked()+
   theme(text = element_text(size = 6))
 
+likertW4
+
 ```
 
-
-
+inserer tableau
 
 ```{r tables reg logit}
 #| tbl-cap: "Régressions logit (log(odd))"
 #| label: tbl-reglogit
 
 library(modelsummary)
-modelsummary(list("Augmentation franchise minimale" = model1_step2), stars = T, output = "annexe/table_regressions_logit_model1.png")
-modelsummary(list("Initiative pour l'allègement des primes" = best_model_glm2), stars = T, output = "annexe/table_regressions_logit_model2.png")
+modelsummary(list("Augmentation franchise minimale" = model1_step2), stars = T)
+modelsummary(list("Initiative pour l'allègement des primes" = best_model_glm2), stars = T)
 ```
 
-
-
 ```{r glmer canton}
+
 
 library(sjPlot)
 library(lme4)
 library(gt)
 library(gtsummary)
 library(modelsummary)
+
+
 glmer_canton_franchise = glmer(data = selects2023panel2,
                                contre_augm_franch_min ~ 1 + (1|canton),
                                family = binomial(link = "logit"))
@@ -1223,7 +1228,6 @@ glmer_canton_primes = glmer(data = selects2023panelW4_2,
 
 ```
 
-
 ```{r glmer table resultats}
 #| label: tbl-canton
 #| tbl-cap: "Modèle multiniveau: cantons suisses en niveau" 
@@ -1231,7 +1235,6 @@ glmer_canton_primes = glmer(data = selects2023panelW4_2,
 
 modelsummary(models = list("Augmentation franchise minimale" = glmer_canton_primes, "Initiative pour l'allègement des primes" = glmer_canton_franchise), output = "gt")
 ```
-
 
 ```{r glm eseg}
 #| tbl-cap: "Régressions logistiques simples: opposition à l'augmentation de la franchise et vote pour l'allègement des primes sur les catégories socio-professionnelles ESEG (Log(Odd))"
@@ -1245,13 +1248,8 @@ glm_eseg_primes = glm(data = selects2023panelW4_2,
                                yes_premium_initiative ~ eseg10,
                             family = binomial(link = "logit"))
 
-modelsummary(list("Augmentation franchise minimale" = glm_eseg_franchise, "Initiative pour l'allègement des primes" = glm_eseg_primes), stars = T, output = "annexe/regeseg.png")
+modelsummary(list("Augmentation franchise minimale" = glm_eseg_franchise, "Initiative pour l'allègement des primes" = glm_eseg_primes), stars = T)
 ```
-
-
-
-
-
 
 ```{r model franchise checks}
 #| fig-height: 10
@@ -1266,7 +1264,7 @@ check_model(model1_step2)
 checkmodel1
 
 plot = plot(checkmodel1)
-ggsave("diagnosticfranchise.png", plot, width = 15, height = 10)
+#ggsave("diagnosticfranchise.png", plot, width = 15, height = 10)
 ```
 
 ```{r model premium checks}
@@ -1279,14 +1277,5 @@ checkmodel2 <-
 check_model(best_model_glm2)
 
 plot = plot(checkmodel2)
-ggsave("diagnosticprimes.png", plot, width = 15, height = 10)
+#ggsave("diagnosticprimes.png", plot, width = 15, height = 10)
 ```
-
-
-
-
-
-
-
-
-
