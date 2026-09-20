@@ -38,9 +38,8 @@ lang: fr
 
 La spécification des modèles présentés dans la section 4 a pour objectif de reproduire une analyse néoréaliste des facteurs influençant les attentes sociales. Les variables dépendantes sont binarisées afin de conduire des estimations de modèles logistiques binaires en utilisant l’estimation du maximum de vraisemblance. La variable d’opinion sur l’augmentation de la franchise minimale de l’assurance-maladie de base est construite sur une échelle Likert de 1 (fortement contre) à 5 (fortement pour). Nous avons créé une variable dichotomique pour les deux premières catégories (fortement contre et contre). Pour le choix du vote pour l’initiative d’allègement des primes, nous avons dichotomisé en binarisant le vote en faveur de l’initiative. Les principales variables explicatives que nous avons considérées sont un indice de classe sociale mesurée par la classification européenne des groupes socioéconomiques (ESEG), le revenu mensuel brut du ménage, à partir duquel nous calculons le niveau de revenu par décile, ainsi qu’une batterie d’indicateurs socio-démographiques (âge, langue, cantons, genre) et idéologiques (auto-positionnement gauche-droite, vote, probabilité de vote pour les principaux partis politiques, opinions sur des sujets économiques et identitaires). Pour chacune de nos deux variables dépendantes, nous avons procédé à une sélection de modèle pas à pas descendante avec le critère d’information d’Akaike (AIC). Cette procédure a abouti au modèle suivant pour l’opposition à l’augmentation de la franchise minimale:
 
-$$
-P(y_i = 1) = logit^{-1}(\beta_0 + \beta_{d}D_i + \beta X_i + \gamma_p P_i + \eta_o O_i + \epsilon_i) 
-$$ {#eq-1}
+$$P(y_i = 1) = logit^{-1}(\beta_0 + \beta_{d}D_i + \beta X_i + \gamma_p P_i + \eta_o O_i + \epsilon_i) $$
+ {#eq-1}
 
 Avec $P(y_i = 1)$ la probabilité de l’individu $i$ d’être contre l’augmentation de la franchise minimale, $D_i$ le niveau de décile auquel appartient l’individu $i$, $X_i$ un vecteur de caractéristiques individuelles socio-démographique (âge, genre, langue), $P_i$ un vecteur de variable sur la probabilité de voter pour certains partis politiques suisses (Le Centre, le Parti Socialiste, les Verts et les Verts Libéraux) sur une échelle de 0 à 10, et $O_i$ l’opinion sur une série d’enjeux comme l’intégration européenne, le salaire minimum ou encore les dépenses sociales. $\epsilon_i$ est le terme d’erreur. De manière surprenante, la variable pour les groupes socio-économiques ESEG n’a pas été retenue par la procédure de sélection, ce qui implique que la classe sociale telle que mesurée par l’indice ESEG ne semble pas jouer un rôle déterminant par rapport au niveau de revenu et aux autres variables de contrôle Comme le schéma de classe ESEG est une variable importante pour notre analyse, nous considérons quand même les résultats d’une régression simple de nos deux variables dépendantes sur les catégories socio-professionnelles ESEG (résultats disponibles dans l’annexe). Encore plus étonnant, la variable contrôlant pour les cantons n’a pas non plus été retenue, ce qui suggère que l’effet d’appartenance à un canton est négligeable. Le coefficient de corrélation interclasse (ICC) calculé à partir d’un modèle multiniveau avec les cantons en tant que niveau confirme que les variations entre cantons sont faibles (voir annexe). Le modèle pour le vote en faveur de l’initiative pour l’allègement des primes prend une forme similaire à (1), avec quelques différences au niveau des variables retenues car certaines d’entre elles n’étaient pas disponible dans la quatrième vague. Comme pour le premier modèle, le schéma de classe ESEG n’a pas été retenu par la procédure de sélection, ni le canton de résidence.
 
@@ -1172,8 +1171,6 @@ likert1
 likert2
 likert3
 ```
-
-
 
 ```{r stats descriptives variables explicatives second model}
 
